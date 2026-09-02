@@ -1,10 +1,12 @@
 import express from "express"
+import { json } from "node:stream/consumers"
+import type { Produtos } from "./types/produtos.js"
 
 const app = express()
 
 app.use(express.json())
 
-const produtos = [
+let produtos: Produtos[] = [
   { id: "1", nome: "Notebook", categoria: "eletronicos", preco: 3500 },
   { id: "2", nome: "Mouse", categoria: "eletronicos", preco: 80 },
   { id: "3", nome: "Cadeira", categoria: "moveis", preco: 600 },
@@ -12,34 +14,44 @@ const produtos = [
   { id: "5", nome: "Fone de ouvido", categoria: "eletronicos", preco: 250 },
 ]
 
-app.get("/products/:id", (req, res) => {
-  const produto = produtos.find((produto) => produto.id === req.params.id)
-
-  if (!produto) {
-    return res.status(404).send({ erro: "Produto não encontrado" })
-  }
+app.get("/products", (req, res) => {
+  res.send(produtos)
 })
 
-app.get("/produtos", (req, res) => {
-  let resultado = produtos
+app.get("/products/:id", (req, res) => {
+  const foundProduct = produtos.find((p) => p.id === req.params.id)
+  res.status(200).send(foundProduct)
+})
 
-  if (!req.query.categoria && !req.query.precoMax) {
-    return res.send({ mensagem: "Sem filtros" })
+app.post("/products", (req, res) => {
+  const newProduct: Produtos = req.body
+  produtos.push(newProduct)
+  res.status(201).send({ message: "Novo produto foi adicionado" })
+})
+
+app.patch("/products/:id", (req, res) => {
+  const foundProduct = produtos.find((p) => p.id === req.params.id)
+
+  const chave = req.query.chave as string
+  const valor = req.query.valor as string
+
+  if (!foundProduct) {
+    return res.status(404).send({ message: "Produto não encontrado" })
   }
 
-  if (req.query.categoria) {
-    resultado = resultado.filter(
-      (produto) => produto.categoria == req.query.categoria,
-    )
+  if (!chave || !valor) {
+    return res.status(400).json({ erro: "chave e valor são obrigatórios" })
   }
 
-  if (req.query.precoMax) {
-    resultado = resultado.filter(
-      (produto) => produto.preco <= Number(req.query.precoMax),
-    )
-  }
+  ;(foundProduct as any)[chave] = valor
+  res.status(201).send(foundProduct)
+})
 
-  res.send(resultado)
+app.delete("/products/:id", (req, res) => {
+  produtos = produtos.filter((produto) => produto.id !== req.params.id)
+  res
+    .status(200)
+    .send({ mensagem: "Produto removido com sucesso!", produtos: produtos })
 })
 
 const PORT = 3000
