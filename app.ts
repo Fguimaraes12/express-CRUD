@@ -1,5 +1,4 @@
 import express from "express"
-import { json } from "node:stream/consumers"
 import type { Produtos } from "./types/produtos.js"
 
 const app = express()
@@ -20,6 +19,9 @@ app.get("/products", (req, res) => {
 
 app.get("/products/:id", (req, res) => {
   const foundProduct = produtos.find((p) => p.id === req.params.id)
+  if (!foundProduct) {
+    res.status(404).send({ erro: "produto não encontrado" })
+  }
   res.status(200).send(foundProduct)
 })
 
@@ -48,6 +50,11 @@ app.patch("/products/:id", (req, res) => {
 })
 
 app.delete("/products/:id", (req, res) => {
+  const existe = produtos.some((produto) => produto.id !== req.params.id)
+
+  if (!existe) {
+    res.status(404).send({ erro: "Produto não encontrado" })
+  }
   produtos = produtos.filter((produto) => produto.id !== req.params.id)
   res
     .status(200)
